@@ -6,6 +6,8 @@ public class Player : MonoBehaviour
 
     [Header("角色移動速度"), Range(10f, 50f)]
     public float speed = 10f;
+    [Header("旋轉速度"), Range(0, 10000)]
+    public float turn =  60;
     [Header("角色攻擊力"), Range(10f, 50f)]
     private float attack = 10f;
     [Header("角色血量"), Range(10f, 500f)]
@@ -22,6 +24,8 @@ public class Player : MonoBehaviour
     [Header("動畫")]
     private Animator ani;
 
+    private Transform cam;
+
     #endregion
 
     #region 方法區域
@@ -29,19 +33,41 @@ public class Player : MonoBehaviour
     {
         rig = GetComponent<Rigidbody>();
         ani = GetComponent<Animator>();
+        cam = GameObject.Find("Main Camera").transform;
     }
 
-   
+    private void FixedUpdate()
+    {
+        Move();
+    }
 
- 
-    #endregion 
+    private void Update()
+    {
+        Attack();
+    }
+
+
+
+    #endregion
     #region 事件區域
     /// <summary>
-    ///角色移動:移動動畫
+    ///角色移動:移動動畫、前後左右移動
     /// </summary>
     private void Move()
     {
-        
+        float v = Input.GetAxis("Vertical");
+        float h = Input.GetAxis("Horizontal");
+        Vector3 pos = cam.forward * v + cam.right * h;
+        rig.MovePosition(transform.position + pos * speed);
+
+        ani.SetFloat("移動", Mathf.Abs(v) + Mathf.Abs(h));
+
+        if (v != 0 || h != 0)
+        {
+            pos.y = 0;
+            Quaternion angle = Quaternion.LookRotation(pos);
+            transform.rotation = Quaternion.Slerp(transform.rotation, angle, turn);
+        }
     }
 
     /// <summary>
@@ -49,7 +75,10 @@ public class Player : MonoBehaviour
     /// </summary>
     private void Attack()
     {
-
+        if (Input.GetKeyDown(KeyCode.Mouse0))
+        {
+            ani.SetTrigger("攻擊觸發");
+        }
     }
 
     /// <summary>
