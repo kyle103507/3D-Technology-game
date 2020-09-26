@@ -7,7 +7,7 @@ public class Player : MonoBehaviour
     [Header("角色移動速度"), Range(10f, 50f)]
     public float speed = 10f;
     [Header("旋轉速度"), Range(0, 10000)]
-    public float turn =  60;
+    public float turn = 60;
     [Header("角色攻擊力"), Range(10f, 50f)]
     private float attack = 10f;
     [Header("角色血量"), Range(10f, 500f)]
@@ -44,6 +44,7 @@ public class Player : MonoBehaviour
     private void Update()
     {
         Attack();
+        RotMove();
     }
 
 
@@ -67,6 +68,17 @@ public class Player : MonoBehaviour
             pos.y = 0;
             Quaternion angle = Quaternion.LookRotation(pos);
             transform.rotation = Quaternion.Slerp(transform.rotation, angle, turn);
+        }
+    }
+
+    /// <summary>
+    /// 翻滾移動:閃避、翻滾動畫
+    /// </summary>
+    private void RotMove()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            ani.SetTrigger("翻滾");
         }
     }
 
