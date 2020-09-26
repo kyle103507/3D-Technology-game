@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour
 {
@@ -11,13 +13,28 @@ public class Player : MonoBehaviour
     [Header("角色攻擊力"), Range(10f, 50f)]
     private float attack = 10f;
     [Header("角色血量"), Range(10f, 500f)]
-    public float hp = 500f;
+    public float hp = 500;
+    public float maxHp = 500;
     [Header("角色魔量"), Range(10f, 300f)]
-    public float mp = 100f;
+    public float mp = 50;
+    public float maxMp = 100f;
     [Header("角色經驗值")]
     private float exp = 100f;
+    private float maxExp = 100f;
     [Header("角色等級")]
     private int lv;
+
+    [Header("介面區塊")]
+    public Image barHp;
+    public Image barMp;
+    public Image barExp;
+
+    public Text textLv;
+    [Header("結束畫面")]
+    public GameObject final;
+
+    [Header("等級陣列")]
+    public float[] exps = new float[99];
 
     [Header("剛體")]
     private Rigidbody rig;
@@ -34,6 +51,8 @@ public class Player : MonoBehaviour
         rig = GetComponent<Rigidbody>();
         ani = GetComponent<Animator>();
         cam = GameObject.Find("Main Camera").transform;
+
+        for (int i = 0; i < exps.Length; i++) exps[i] = 100 * (i + 1);
     }
 
     private void FixedUpdate()
@@ -47,6 +66,15 @@ public class Player : MonoBehaviour
         RotMove();
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        //如果 碰到物件的標籤 等於 怪蟲
+        if (other.tag == "怪蟲")
+        {
+            other.GetComponent<Enemy>().Hit(attack, transform);
+        }
+    }
+
 
 
     #endregion
@@ -56,6 +84,9 @@ public class Player : MonoBehaviour
     /// </summary>
     private void Move()
     {
+        if (ani.GetCurrentAnimatorStateInfo(0).IsName("攻擊")) return;                        //當是 "攻擊動畫"  就不做移動                
+      //  if (ani.GetCurrentAnimatorStateInfo(0).IsName("翻滾")) return;                        //當是 "翻滾動畫"  就不做移動  
+
         float v = Input.GetAxis("Vertical");
         float h = Input.GetAxis("Horizontal");
         Vector3 pos = cam.forward * v + cam.right * h;
@@ -76,10 +107,14 @@ public class Player : MonoBehaviour
     /// </summary>
     private void RotMove()
     {
+
         if (Input.GetKeyDown(KeyCode.Space))
         {
+
             ani.SetTrigger("翻滾");
         }
+
+
     }
 
     /// <summary>
@@ -89,8 +124,10 @@ public class Player : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Mouse0))
         {
+            
             ani.SetTrigger("攻擊觸發");
         }
+
     }
 
     /// <summary>
@@ -104,9 +141,16 @@ public class Player : MonoBehaviour
     /// <summary>
     /// 角色受傷:受傷動畫
     /// </summary>
-    private void Hit()
+    public void Hit(float damage, Transform direction)                  //direction 方向
     {
+        hp -= damage;
+        ani.SetTrigger("受傷觸發");
+        rig.AddForce(direction.forward * 100 + direction.up * 10);      //擊退朝怪物前與上方
 
+        hp = Mathf.Clamp(hp, 0, 9999);                                  //夾住血量不要低於0
+        barHp.fillAmount = hp / maxHp;                              //更新血條
+
+        if (hp == 0) Dead();                                            //如果響亮等於零就死
     }
 
     /// <summary>
@@ -114,15 +158,50 @@ public class Player : MonoBehaviour
     /// </summary>
     private void Dead()
     {
-
+        ani.SetBool("死亡開關", true);                  //死亡動畫
+        final.SetActive(true);
+        enabled = false;                                //關閉此腳本
     }
 
     /// <summary>
     /// 角色經驗值
     /// </summary>
-    private void Exp()
+    /// <summary>
+    /// 經驗值
+    /// </summary>
+    /// <param name="getExp">獲得的經驗值</param>
+    public void Exp(float getExp)
     {
+        exp += getExp;
+        barExp.fillAmount = exp / maxExp;
 
+        while (exp >= maxExp && lv < exps.Length) LeveUp();                  //當 經驗值 > = 經驗值需求 等級 < 經驗需求數量就 持續升級
+    }
+
+    private void LeveUp()
+    {
+        lv++;                                       //等級遞增
+        maxHp += 10;                                //血量遞增
+        maxMp += 10;                                //魔力遞增
+        attack += 10;                               //攻擊遞增
+
+
+        hp = maxHp;                                 //恢復血量
+        mp = maxMp;                                 //恢復魔力
+        exp -= maxExp;                              //扣掉最大經驗值保留多餘的經驗值
+
+        maxExp = exps[lv - 1];                      //下一級最大經驗值
+
+        barHp.fillAmount = 1;                       //血條全滿
+        barMp.fillAmount = 1;                       //魔力全滿
+        barExp.fillAmount = exp / maxExp;           //更新經驗值介面
+        textLv.text = "LV" + lv;                    //更新等級介面
+
+    }
+
+   public void Win()
+    {
+        final.SetActive(true);
     }
 
     #endregion
